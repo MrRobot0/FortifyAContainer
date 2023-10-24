@@ -1,7 +1,9 @@
 ﻿@page "/test"
+@inject DockerService docker
 
-<h3>Test your docker</h3>
+<h3>Test your docker environment</h3>
 
 @code {
+	public static string URI { get; set; } = "/test";
 
 }

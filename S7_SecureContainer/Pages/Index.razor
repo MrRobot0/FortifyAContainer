@@ -4,6 +4,7 @@
 @inject DockerService docker
 @inject IJSRuntime jsRuntime
 @inject IToastService toastService
+@inject NavigationManager nav
 
 <br />
 
@@ -26,15 +27,17 @@
 @docker.ConnectionString
 
 @code {
+    public string URI { get; set; } = "/";
     public DockerConnectionHost Model { get; set; } = new();
 
     //protected override void OnInitialized() => Model ??= new();
 
     private async void Submit()
     {
+        DockerClient client;
         try
         {
-            DockerClient client = new DockerClientConfiguration(
+            client = new DockerClientConfiguration(
             new Uri(Model.ConnectionString))
                 .CreateClient();
             IList<ContainerListResponse> containers = await client.Containers.ListContainersAsync(
@@ -44,7 +47,7 @@
             });
             if (containers.Count == 0)
             {
-                toastService.ShowToast(ToastLevel.Error, "No containers found, please check if the server url is correct.");
+                toastService.ShowToast(ToastLevel.Error, "No containers found!");
                 return;
             }
         }
@@ -55,6 +58,8 @@
         }
 
         docker.ConnectionString = Model.ConnectionString;
+        docker.Client = client;
+        nav.NavigateTo(Test.URI);
     }
 
     public class DockerConnectionHost
