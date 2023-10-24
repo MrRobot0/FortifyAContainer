@@ -1,4 +1,5 @@
 ﻿using Docker.DotNet;
+using Docker.DotNet.Models;
 
 namespace S7_SecureContainer.Services
 {

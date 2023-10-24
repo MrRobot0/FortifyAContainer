@@ -1,9 +1,101 @@
 ﻿@page "/test"
 @inject DockerService docker
+@inject DockerTest dockerTest
 
-<h3>Test your docker environment</h3>
+<br />
+<h3 class="text-white">Testing your docker environment</h3>
+<br />
+
+<div class="row">
+    <button @onclick="Refresh" class="col-2 mx-1 btn btn-success">Refresh</button>
+    <button @onclick="togglePassed" class="col-2 mx-1 btn @(testResultFilter.showPassed ? "btn-success" : "btn-danger")">Passed</button>
+    <button @onclick="toggleFailed" class="col-2 mx-1 btn @(testResultFilter.showFailed ? "btn-success" : "btn-danger")">Failed</button>
+    <button @onclick="toggleInvalid" class="col-2 mx-1 btn @(testResultFilter.showInvalid ? "btn-success" : "btn-danger")">Invalid</button>
+</div>
+
+<br />
+
+@if (containertestResultsView != null)
+{
+    <div class="row">
+        @foreach (var containerTestResults in containertestResultsView)
+        {
+            <div class="col-4 mb-3">
+                <div class="card">
+                  <div class="card-header">
+                    @containerTestResults.Key.Names.First().TrimStart('/')
+                  </div>
+                  <ul class="list-group list-group-flush">
+                    @foreach (var testResult in containerTestResults.Value)
+                    {
+                            <li class="list-group-item 
+                                @(testResult.State == TestResult.Status.Passed ? "text-bg-success" : "")
+                                @(testResult.State == TestResult.Status.Failed ? "text-bg-danger" : "")
+                                @(testResult.State == TestResult.Status.Invalid ? "text-bg-warning" : "")">
+                                @testResult.Message
+                            </li>
+                    }
+                  </ul>
+                </div>
+            </div>
+        }
+    </div>
+}
 
 @code {
-	public static string URI { get; set; } = "/test";
+    public static string URI { get; set; } = "/test";
+
+    public Dictionary<ContainerListResponse, List<TestResult>>? containertestResults { get; set; }
+    public Dictionary<ContainerListResponse, List<TestResult>>? containertestResultsView { get; set; }
+    public TestResultFilter testResultFilter { get; set; } = new();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        ContainersListParameters listParameters = new ContainersListParameters();
+        listParameters.All = true;
+        containertestResults = await dockerTest.TestContainers(listParameters, docker);
+        containertestResultsView = containertestResults;
+    }
+
+    async Task Refresh()
+    {
+        ContainersListParameters listParameters = new ContainersListParameters();
+        listParameters.All = true;
+        containertestResultsView = await dockerTest.TestContainers(listParameters, docker);
+    }
+
+    void toggleFailed()
+    {
+        if (containertestResults == null)
+        {
+            return;
+        }
+
+        testResultFilter.showFailed = !testResultFilter.showFailed;
+        containertestResultsView = testResultFilter.filter(containertestResults);
+    }
+
+    void togglePassed()
+    {
+        if (containertestResults == null)
+        {
+            return;
+        }
+
+        testResultFilter.showPassed = !testResultFilter.showPassed;
+        containertestResultsView = testResultFilter.filter(containertestResults);
+    }
+
+    void toggleInvalid()
+    {
+        if (containertestResults == null)
+        {
+            return;
+        }
+
+        testResultFilter.showInvalid = !testResultFilter.showInvalid;
+        containertestResultsView = testResultFilter.filter(containertestResults);
+    }
 
 }

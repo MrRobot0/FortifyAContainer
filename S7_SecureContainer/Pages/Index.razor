@@ -43,7 +43,7 @@
             IList<ContainerListResponse> containers = await client.Containers.ListContainersAsync(
             new ContainersListParameters()
             {
-                Limit = 10,
+                Limit = 1,
             });
             if (containers.Count == 0)
             {
