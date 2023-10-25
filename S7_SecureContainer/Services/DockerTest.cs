@@ -1,7 +1,10 @@
 ﻿using Docker.DotNet;
 using Docker.DotNet.Models;
 using Microsoft.AspNetCore.Components;
+using Microsoft.VisualBasic;
 using S7_SecureContainer.Models;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace S7_SecureContainer.Services
@@ -23,6 +26,7 @@ namespace S7_SecureContainer.Services
 
             this.dockerService = dockerService;
             var containers = await dockerService.Client.Containers.ListContainersAsync(listParameters);
+            
             containerTestResults.Clear();
             Tasks.Clear();
 
@@ -40,45 +44,61 @@ namespace S7_SecureContainer.Services
         private async Task CheckForRoot(ContainerListResponse container)
         {
             var list = containerTestResults[container];
-            var config = await dockerService.Client.Containers.InspectContainerAsync(container.ID);
-            var user = config.Config.User;
-
-            if (user == null)
+            try
+            {
+                var config = await dockerService.Client.Containers.InspectContainerAsync(container.ID);
+                if (config.ID != container.ID)
+                {
+                    list.Add(new TestResult(TestType.CheckForRoot, TestResult.Status.Invalid, container));
+                }
+                var user = config.Config.User;
+                if (user != "0:0" && user != "root")
+                {
+                    list.Add(new TestResult(TestType.CheckForRoot, TestResult.Status.Passed, container));
+                }
+                else
+                {
+                    list.Add(new TestResult(TestType.CheckForRoot, TestResult.Status.Failed, container));
+                }
+            }
+            catch (Exception ex)
             {
                 list.Add(new TestResult(TestType.CheckForRoot, TestResult.Status.Invalid, container));
-                return;
             }
-
-            if (user != "0:0" && user != "root")
-            {
-                list.Add(new TestResult(TestType.CheckForRoot, TestResult.Status.Passed, container));
-            }
-            else 
-            {
-                list.Add(new TestResult(TestType.CheckForRoot, TestResult.Status.Failed, container));
-            }
+           
 		}
 
         private async Task CheckForDefaultNetwork(ContainerListResponse container)
         {
             var list = containerTestResults[container];
-            var config = await dockerService.Client.Containers.InspectContainerAsync(container.ID);
-            var networks = config.NetworkSettings.Networks;
-            if (networks == null)
+            try
             {
-                list.Add(new TestResult(TestType.CheckForDefaultNetwork, TestResult.Status.Invalid, container));
-                return;
-            }
-
-            foreach (var network in networks)
-            {
-                if (network.Key == "bridge")
+                var config = await dockerService.Client.Containers.InspectContainerAsync(container.ID);
+                if (config.ID != container.ID)
                 {
-                    list.Add(new TestResult(TestType.CheckForDefaultNetwork, TestResult.Status.Failed, container));
+                    list.Add(new TestResult(TestType.CheckForRoot, TestResult.Status.Invalid, container));
+                }
+                var networks = config.NetworkSettings.Networks;
+                if (networks == null)
+                {
+                    list.Add(new TestResult(TestType.CheckForDefaultNetwork, TestResult.Status.Invalid, container));
                     return;
                 }
+
+                foreach (var network in networks)
+                {
+                    if (network.Key == "bridge")
+                    {
+                        list.Add(new TestResult(TestType.CheckForDefaultNetwork, TestResult.Status.Failed, container));
+                        return;
+                    }
+                }
+                list.Add(new TestResult(TestType.CheckForDefaultNetwork, TestResult.Status.Passed, container));
             }
-            list.Add(new TestResult(TestType.CheckForDefaultNetwork, TestResult.Status.Passed, container));
+            catch (Exception ex)
+            {
+                list.Add(new TestResult(TestType.CheckForDefaultNetwork, TestResult.Status.Invalid, container));
+            }
         }
     }
 }

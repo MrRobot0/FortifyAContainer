@@ -1,101 +1,151 @@
-﻿@page "/test"
+﻿@page "/"
 @inject DockerService docker
 @inject DockerTest dockerTest
+@inject IToastService toastService
 
-<br />
-<h3 class="text-white">Testing your docker environment</h3>
-<br />
 
-<div class="row">
-    <button @onclick="Refresh" class="col-2 mx-1 btn btn-success">Refresh</button>
-    <button @onclick="togglePassed" class="col-2 mx-1 btn @(testResultFilter.showPassed ? "btn-success" : "btn-danger")">Passed</button>
-    <button @onclick="toggleFailed" class="col-2 mx-1 btn @(testResultFilter.showFailed ? "btn-success" : "btn-danger")">Failed</button>
-    <button @onclick="toggleInvalid" class="col-2 mx-1 btn @(testResultFilter.showInvalid ? "btn-success" : "btn-danger")">Invalid</button>
-</div>
-
-<br />
-
-@if (containertestResultsView != null)
-{
-    <div class="row">
-        @foreach (var containerTestResults in containertestResultsView)
+<div class="d-flex">
+    <div class="p-2 w-100"><h2 class="text-white my-3 text-center fw-bold">Testing your docker environment</h2></div>
+    <div class="p-2 flex-shrink-1 mt-4">
+        @if (!IsRefreshing)
         {
-            <div class="col-4 mb-3">
-                <div class="card">
-                  <div class="card-header">
-                    @containerTestResults.Key.Names.First().TrimStart('/')
-                  </div>
-                  <ul class="list-group list-group-flush">
-                    @foreach (var testResult in containerTestResults.Value)
-                    {
-                            <li class="list-group-item 
-                                @(testResult.State == TestResult.Status.Passed ? "text-bg-success" : "")
-                                @(testResult.State == TestResult.Status.Failed ? "text-bg-danger" : "")
-                                @(testResult.State == TestResult.Status.Invalid ? "text-bg-warning" : "")">
-                                @testResult.Message
-                            </li>
-                    }
-                  </ul>
-                </div>
-            </div>
+            <button @onclick="doRefresh" class="btn btn-primary text-white position-relative">
+                <i class="bi bi-arrow-clockwise"></i>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                    @dockerCount
+                <span class="visually-hidden">unread messages</span>
+                </span>
+            </button>
+        }
+        else
+        {
+            <button class="btn btn-outline-primary text-white" type="button" disabled>
+                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                <span role="status"></span>
+            </button>
         }
     </div>
-}
+</div>
 
+<div class="row">
+    <div class="col-2 mt-3 d-flex">
+        <div class="card bg-gradient p-2 pb-3">
+            <Index onSubmit="Refresh" onClear="Clear"></Index>
+            
+                <div class="card mt-2">
+                    <div class="card-body">
+                        <p class="text-white text-center mb-1">Filters</p>
+                        <input class="form-control" @bind-value="_SearchText" @bind-value:event="oninput"></input>
+                        <div class="d-grid gap-2 mt-2">
+                        <button @onclick="(() => toggleFilter(TestResult.Status.Passed))" class="btn mt-2 mx-2 position-relative @(testResultFilter.GetOption(TestResult.Status.Passed) ? "btn-success" : "btn-secondary")">
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                @testResultFilter.AllTestResults[TestResult.Status.Passed].Count
+                            <span class="visually-hidden">unread messages</span>
+                            </span>Passed</button>
+                        <button @onclick="(() => toggleFilter(TestResult.Status.Failed))" class="btn mt-2 mx-2 position-relative @(testResultFilter.GetOption(TestResult.Status.Failed) ? "btn-danger" : "btn-secondary")">
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                @testResultFilter.AllTestResults[TestResult.Status.Failed].Count
+                                <span class="visually-hidden">unread messages</span>
+                            </span>Failed
+                        </button>
+                        <button @onclick="(() => toggleFilter(TestResult.Status.Invalid))" class="btn mt-2 mb-1 mx-2 position-relative @(testResultFilter.GetOption(TestResult.Status.Invalid) ? "btn-warning" : "btn-secondary")">
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                @testResultFilter.AllTestResults[TestResult.Status.Invalid].Count
+                                <span class="visually-hidden">unread messages</span>
+                            </span>Invalid
+                        </button>
+                    </div>
+                    </div>
+                </div>
+            
+            <div class="flex-fill min-vh-100">
+
+            </div>
+        </div>
+    </div>
+    <div class="col-10">
+        <div class="row mt-3">
+                @foreach (var containerTestResults in ContainerTestResultsView)
+            {
+                <div class="col-12 col-sm-6 col-md-6 col-lg-4 col-xl-3 col-xxl-2 mb-3">
+                    <div class="card">
+                      <div class="card-header text-bg-secondary text-center fw-bold text-capitalize" style="min-height: 4em">
+                            @containerTestResults.Key.Names.First().TrimStart('/')
+                      </div>
+                      <ul class="list-group list-group-flush">
+                        @foreach (var testResult in containerTestResults.Value)
+                        {
+                                <li class="list-group-item text-bg-dark" style="min-height: 4em">
+                                @if (testResult.State == TestResult.Status.Passed) 
+                                {
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+                                }
+                                else if (testResult.State == TestResult.Status.Failed)
+                                {
+                                    <i class="bi bi-x-circle-fill text-danger"></i>
+                                }
+                                    @(" " + testResult.Message)
+                            </li>
+                        }
+                      </ul>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
 @code {
-    public static string URI { get; set; } = "/test";
-
-    public Dictionary<ContainerListResponse, List<TestResult>>? containertestResults { get; set; }
-    public Dictionary<ContainerListResponse, List<TestResult>>? containertestResultsView { get; set; }
+    public static string URI { get; set; } = "/";
+    public Dictionary<ContainerListResponse, List<TestResult>> ContainerTestResultsView => testResultFilter.TestResultsView.Where(a => a.Key.Names.First().ToLower().Contains(_SearchText.ToLower())).ToDictionary(kv => kv.Key, kv => kv.Value);
+    public int dockerCount => testResultFilter.AllTestResults[TestResult.Status.Passed].Union(testResultFilter.AllTestResults[TestResult.Status.Failed]).GroupBy(g => g.Key).ToDictionary(pair => pair.Key, pair => pair.First().Value).Union(testResultFilter.AllTestResults[TestResult.Status.Invalid]).GroupBy(g => g.Key).ToDictionary(pair => pair.Key, pair => pair.First().Value).Count();
     public TestResultFilter testResultFilter { get; set; } = new();
+    public bool IsRefreshing { get; set; } = false;
+    private string _SearchText = String.Empty;
+    //public string SearchText { get { return _SearchText; } set { _SearchText = value; Search(); } }
 
 
     protected override async Task OnInitializedAsync()
     {
-        ContainersListParameters listParameters = new ContainersListParameters();
-        listParameters.All = true;
-        containertestResults = await dockerTest.TestContainers(listParameters, docker);
-        containertestResultsView = containertestResults;
+        if (docker.ConnectionString != null)
+        {
+            await Refresh();
+        }
     }
 
     async Task Refresh()
     {
         ContainersListParameters listParameters = new ContainersListParameters();
         listParameters.All = true;
-        containertestResultsView = await dockerTest.TestContainers(listParameters, docker);
+        var containertestResults = await dockerTest.TestContainers(listParameters, docker);
+        testResultFilter = new TestResultFilter(containertestResults);
     }
 
-    void toggleFailed()
+    void Clear()
     {
-        if (containertestResults == null)
-        {
-            return;
-        }
-
-        testResultFilter.showFailed = !testResultFilter.showFailed;
-        containertestResultsView = testResultFilter.filter(containertestResults);
+        if (testResultFilter.TestResultsView != null) testResultFilter.TestResultsView.Clear();
+        docker.ConnectionString = String.Empty;
     }
 
-    void togglePassed()
+    async Task doRefresh()
     {
-        if (containertestResults == null)
-        {
-            return;
-        }
-
-        testResultFilter.showPassed = !testResultFilter.showPassed;
-        containertestResultsView = testResultFilter.filter(containertestResults);
+        IsRefreshing = true;
+        await Refresh();
+        toastService.ShowToast(ToastLevel.Info, "Refresh complete!");
+        await Task.Delay(750);
+        IsRefreshing = false;
     }
 
-    void toggleInvalid()
+    void toggleFilter(TestResult.Status status)
     {
-        if (containertestResults == null)
-        {
-            return;
-        }
-
-        testResultFilter.showInvalid = !testResultFilter.showInvalid;
-        containertestResultsView = testResultFilter.filter(containertestResults);
+        if (testResultFilter.TestResultsView == null) return;
+        testResultFilter.SetOption(status, !testResultFilter.GetOption(status));
     }
+
+    //void Search()
+    //{
+    //    if (ContainerTestResultsView == null) return;
+    //    ContainerTestResultsView = testResultFilter.TestResultsView.Where(a => a.Key.Names.First().Contains(_SearchText)).ToDictionary(kv => kv.Key, kv => kv.Value);
+    //    StateHasChanged();
+    //}
 
 }

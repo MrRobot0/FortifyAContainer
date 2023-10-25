@@ -1,38 +1,39 @@
-﻿@page "/"
-@using Docker.DotNet
+﻿@using Docker.DotNet
 @using Docker.DotNet.Models;
 @inject DockerService docker
 @inject IJSRuntime jsRuntime
 @inject IToastService toastService
 @inject NavigationManager nav
 
-<br />
-
 <div class="card">
     <div class="card-body">
         <EditForm Model="@Model" OnSubmit="@Submit">
-
-            <div class="mb-3">
+            <div class="mb-3 text-center">
                 <label for="ConnectionString" class="form-label">Docker Host URL</label>
                 <InputText class="form-control" id="ConnectionString" @bind-Value="Model!.ConnectionString" />
             </div>
-
-            <button class="btn btn-success" type="submit">Submit</button>
+            <div class="d-grid gap-2 mt-3">
+                <button class="btn btn-primary" type="submit">Submit</button>
+                <button class="btn btn-outline-secondary text-white" @onclick="(() => {onClear.InvokeAsync(); Model.ConnectionString = String.Empty;})" type="button">Clear</button>
+            </div>
         </EditForm>
     </div>
 </div>
 
-
-
-@docker.ConnectionString
-
 @code {
     public string URI { get; set; } = "/";
     public DockerConnectionHost Model { get; set; } = new();
+    [Parameter]
+    public EventCallback onSubmit { get; set; }
+    [Parameter]
+    public EventCallback onClear { get; set; }
 
-    //protected override void OnInitialized() => Model ??= new();
+    protected override void OnInitialized()
+    {
+        Model.ConnectionString = docker.ConnectionString;
+    }
 
-    private async void Submit()
+    private async Task Submit()
     {
         DockerClient client;
         try
@@ -59,7 +60,7 @@
 
         docker.ConnectionString = Model.ConnectionString;
         docker.Client = client;
-        nav.NavigateTo(Test.URI);
+        await onSubmit.InvokeAsync();
     }
 
     public class DockerConnectionHost
