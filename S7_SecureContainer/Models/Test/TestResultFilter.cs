@@ -1,9 +1,9 @@
 ﻿using Docker.DotNet.Models;
 using System.Collections.Generic;
 using System.Reflection.Metadata.Ecma335;
-using static S7_SecureContainer.Models.TestResult;
+using static S7_SecureContainer.Models.Test.TestResult;
 
-namespace S7_SecureContainer.Models
+namespace S7_SecureContainer.Models.Test
 {
     public class TestResultFilter
     {
@@ -64,19 +64,19 @@ namespace S7_SecureContainer.Models
             foreach (var keyValuePair in containerTestResults)
             {
                 var FailedTests = keyValuePair.Value
-                    .Where(a => a.State == TestResult.Status.Failed)
+                    .Where(a => a.State == Status.Failed)
                     .OrderBy(o => o.Message).ToList();
                 if (FailedTests.Any()) AllTestResults[Status.Failed]
                         .Add(keyValuePair.Key, FailedTests);
 
                 var PassedTests = keyValuePair.Value
-                    .Where(a => a.State == TestResult.Status.Passed)
+                    .Where(a => a.State == Status.Passed)
                     .OrderBy(o => o.Message).ToList();
                 if (PassedTests.Any()) AllTestResults[Status.Passed]
                     .Add(keyValuePair.Key, PassedTests);
 
                 var InvalidTests = keyValuePair.Value
-                    .Where(a => a.State == TestResult.Status.Invalid)
+                    .Where(a => a.State == Status.Invalid)
                     .OrderBy(o => o.Message).ToList();
                 if (InvalidTests.Any()) AllTestResults[Status.Invalid]
                     .Add(keyValuePair.Key, InvalidTests);

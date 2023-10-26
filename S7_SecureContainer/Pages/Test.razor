@@ -1,6 +1,6 @@
 ﻿@page "/"
 @inject DockerService docker
-@inject DockerTest dockerTest
+@inject TestService dockerTest
 @inject IToastService toastService
 
 <div class="d-flex">
@@ -109,13 +109,17 @@
         {
             await doRefresh();
         }
+        else
+        {
+            toastService.ShowToast(ToastLevel.Info, "Please connect to a service!");
+        }
     }
 
     async Task Refresh()
     {
         ContainersListParameters listParameters = new ContainersListParameters();
         listParameters.All = true;
-        TestContainerModel containertestResults = await dockerTest.TestContainers(listParameters, docker);
+        ContainerTestModel containertestResults = await dockerTest.TestDockerContainers(listParameters, docker);
         ShowToasts(containertestResults.Toasts);
         testResultFilter = new TestResultFilter(containertestResults.ContainerTestResults);
     }
@@ -147,12 +151,4 @@
         if (testResultFilter.TestResultsView == null) return;
         testResultFilter.SetOption(status, !testResultFilter.GetOption(status));
     }
-
-    //void Search()
-    //{
-    //    if (ContainerTestResultsView == null) return;
-    //    ContainerTestResultsView = testResultFilter.TestResultsView.Where(a => a.Key.Names.First().Contains(_SearchText)).ToDictionary(kv => kv.Key, kv => kv.Value);
-    //    StateHasChanged();
-    //}
-
 }
