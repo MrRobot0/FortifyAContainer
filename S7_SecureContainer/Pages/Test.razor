@@ -3,7 +3,6 @@
 @inject DockerTest dockerTest
 @inject IToastService toastService
 
-
 <div class="d-flex">
     <div class="p-2 w-100"><h2 class="text-white my-3 text-center fw-bold">Testing your docker environment</h2></div>
     <div class="p-2 flex-shrink-1 mt-4">
@@ -138,6 +137,7 @@
     async Task doRefresh()
     {
         IsRefreshing = true;
+        toastService.ShowToast(ToastLevel.Info, "Running tests..");
         await Refresh();
         IsRefreshing = false;
     }

@@ -57,7 +57,7 @@
             toastService.ShowToast(ToastLevel.Error, "Could not connect to server url: " + Model.ConnectionString);
             return;
         }
-
+        toastService.ShowToast(ToastLevel.Success, "Succesfully connected to: " + Model.ConnectionString);
         docker.ConnectionString = Model.ConnectionString;
         docker.Client = client;
         await onSubmit.InvokeAsync();

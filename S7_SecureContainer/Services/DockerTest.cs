@@ -1,5 +1,6 @@
 ﻿using Docker.DotNet.Models;
 using S7_SecureContainer.Models;
+using System.ComponentModel;
 
 namespace S7_SecureContainer.Services
 {
@@ -7,20 +8,19 @@ namespace S7_SecureContainer.Services
     {
         private DockerService? DockerService { get; set; }
 
-        private Dictionary<ContainerListResponse, List<TestResult>> containerTestResults = new Dictionary<ContainerListResponse, List<TestResult>>();
+        private readonly Dictionary<ContainerListResponse, List<TestResult>> containerTestResults = new();
 
-        private List<Task> Tasks= new List<Task>();
+        private readonly List<Task> Tasks= new();
 
         public async Task<TestContainerModel> TestContainers(ContainersListParameters listParameters, DockerService dockerService)
         {
-            TestContainerModel testContainerModel = new();
             if (!Task.WhenAll(Tasks).IsCompleted)
             {
                 throw new TestStillRunningExpection();
             }
 
-            this.DockerService = dockerService;
-            var containers = await dockerService.Client.Containers.ListContainersAsync(listParameters);
+            DockerService = dockerService;
+            var containers = await DockerService.Client.Containers.ListContainersAsync(listParameters);
             
             containerTestResults.Clear();
             Tasks.Clear();
@@ -33,10 +33,12 @@ namespace S7_SecureContainer.Services
 
             while (!containerFailedTests.TestComplete && containerFailedTests.RetryCount < 6)
             {
-                RunTests(containerFailedTests.Containers);
+                ReRunTests(containerFailedTests);
                 CheckIfTestAreComplete(containerTestResults, containerFailedTests);
                 await Task.WhenAll(Tasks);
             }
+
+            TestContainerModel testContainerModel = new();
 
             if (!containerFailedTests.TestComplete)
             {
@@ -62,20 +64,66 @@ namespace S7_SecureContainer.Services
             }
         }
 
+        private void ReRunTests(ContainerFailedTests containerFailedTests)
+        {
+            foreach (var keyValuePair in containerFailedTests.ContainerTestResults)
+            {
+                var container = keyValuePair.Key;
+                var failedTests = keyValuePair.Value;
+                if (failedTests.Count == TestType.GetTestCount())
+                {
+                    containerTestResults.Remove(container);
+                    containerTestResults.Add(container, new());
+                }
+
+                foreach (var testType in failedTests)
+                {
+                    switch (testType)
+                    {
+                        case TestType.CheckForRoot:
+                            Tasks.Add(Task.Run(() => CheckForRoot(container)));
+                            break;
+                        case TestType.CheckForDefaultNetwork:
+                            Tasks.Add(Task.Run(() => CheckForDefaultNetwork(container)));
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+            }
+        }
+
+
+
         private void CheckIfTestAreComplete(Dictionary<ContainerListResponse, List<TestResult>> containerTestResults, 
             ContainerFailedTests containerFailedTests)
         {
             containerFailedTests.TestComplete = true;
-            containerFailedTests.Containers.Clear();
+            containerFailedTests.ContainerTestResults.Clear();
             containerFailedTests.RetryCount++;
             foreach (var containerTestResult in containerTestResults)
             {
                 if (containerTestResult.Value.Count == TestType.GetTestCount())
                 {
                     containerFailedTests.TestComplete = false;
-                    containerFailedTests.Containers.Add(containerTestResult.Key);
+                    containerFailedTests.ContainerTestResults.Add(
+                        containerTestResult.Key, 
+                        getMissingTestResults(containerTestResult.Value));
                 }
             }
+        }
+
+        private List<string> getMissingTestResults(List<TestResult> testResults)
+        {
+            List<string> resultList = new();
+            foreach (var testResult in TestType.All){
+                if (!testResults.Any(a => a.Message == testResult))
+                {
+                    resultList.Add(testResult);
+                }
+            }
+            return resultList;
         }
 
         private async Task CheckForRoot(ContainerListResponse container)
@@ -98,7 +146,7 @@ namespace S7_SecureContainer.Services
                     list.Add(new TestResult(TestType.CheckForRoot, TestResult.Status.Failed, container));
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 list.Add(new TestResult(TestType.CheckForRoot, TestResult.Status.Invalid, container));
             }
@@ -132,7 +180,7 @@ namespace S7_SecureContainer.Services
                 }
                 list.Add(new TestResult(TestType.CheckForDefaultNetwork, TestResult.Status.Passed, container));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 list.Add(new TestResult(TestType.CheckForDefaultNetwork, TestResult.Status.Invalid, container));
             }

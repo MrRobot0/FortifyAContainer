@@ -2,9 +2,14 @@
 {
     public static class TestType
     {
-        public static string CheckForRoot { get; } = "Check for root usage";
-        public static string CheckForDefaultNetwork { get; set; } = "Check for default network";
+        public const string CheckForRoot = "Check for root usage";
+        public const string CheckForDefaultNetwork = "Check for default network";
 
-        public static int GetTestCount() { return 2; }
+        public static List<string> All = new()
+        {
+            { CheckForRoot },
+            { CheckForDefaultNetwork },
+        };
+        public static int GetTestCount() { return All.Count; }
     }
 }

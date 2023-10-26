@@ -4,7 +4,7 @@ namespace S7_SecureContainer.Models
 {
     public class ContainerFailedTests
     {
-        public List<ContainerListResponse> Containers = new();
+        public Dictionary<ContainerListResponse, List<string>> ContainerTestResults = new();
         public int RetryCount { get; set; } = 0;
 
         public bool TestComplete { get; set; } = true;
