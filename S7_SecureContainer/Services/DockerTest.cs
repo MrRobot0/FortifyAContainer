@@ -1,44 +1,81 @@
-﻿using Docker.DotNet;
-using Docker.DotNet.Models;
-using Microsoft.AspNetCore.Components;
-using Microsoft.VisualBasic;
+﻿using Docker.DotNet.Models;
 using S7_SecureContainer.Models;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 
 namespace S7_SecureContainer.Services
 {
     public class DockerTest
     {
-        private DockerService dockerService { get; set; }
+        private DockerService? DockerService { get; set; }
 
         private Dictionary<ContainerListResponse, List<TestResult>> containerTestResults = new Dictionary<ContainerListResponse, List<TestResult>>();
 
         private List<Task> Tasks= new List<Task>();
 
-        public async Task<Dictionary<ContainerListResponse, List<TestResult>>> TestContainers(ContainersListParameters listParameters, DockerService dockerService)
+        public async Task<TestContainerModel> TestContainers(ContainersListParameters listParameters, DockerService dockerService)
         {
+            TestContainerModel testContainerModel = new();
             if (!Task.WhenAll(Tasks).IsCompleted)
             {
                 throw new TestStillRunningExpection();
             }
 
-            this.dockerService = dockerService;
+            this.DockerService = dockerService;
             var containers = await dockerService.Client.Containers.ListContainersAsync(listParameters);
             
             containerTestResults.Clear();
             Tasks.Clear();
 
+            RunTests(containers);
+
+            await Task.WhenAll(Tasks);
+            ContainerFailedTests containerFailedTests = new();
+            CheckIfTestAreComplete(containerTestResults, containerFailedTests);
+
+            while (!containerFailedTests.TestComplete && containerFailedTests.RetryCount < 6)
+            {
+                RunTests(containerFailedTests.Containers);
+                CheckIfTestAreComplete(containerTestResults, containerFailedTests);
+                await Task.WhenAll(Tasks);
+            }
+
+            if (!containerFailedTests.TestComplete)
+            {
+                testContainerModel.Toasts.Add(TestToastsMessages.TestNotFullyComplete);
+            }
+            else
+            {
+                testContainerModel.Toasts.Add(TestToastsMessages.TestComplete);
+            }
+
+            testContainerModel.ContainerTestResults = containerTestResults;
+            return testContainerModel;
+        }
+
+        private void RunTests(IList<ContainerListResponse> containers)
+        {
             foreach (ContainerListResponse container in containers)
             {
+                containerTestResults.Remove(container);
                 containerTestResults.Add(container, new());
                 Tasks.Add(Task.Run(() => CheckForRoot(container)));
                 Tasks.Add(Task.Run(() => CheckForDefaultNetwork(container)));
             }
+        }
 
-            await Task.WhenAll(Tasks);
-            return containerTestResults;
+        private void CheckIfTestAreComplete(Dictionary<ContainerListResponse, List<TestResult>> containerTestResults, 
+            ContainerFailedTests containerFailedTests)
+        {
+            containerFailedTests.TestComplete = true;
+            containerFailedTests.Containers.Clear();
+            containerFailedTests.RetryCount++;
+            foreach (var containerTestResult in containerTestResults)
+            {
+                if (containerTestResult.Value.Count == TestType.GetTestCount())
+                {
+                    containerFailedTests.TestComplete = false;
+                    containerFailedTests.Containers.Add(containerTestResult.Key);
+                }
+            }
         }
 
         private async Task CheckForRoot(ContainerListResponse container)
@@ -46,7 +83,7 @@ namespace S7_SecureContainer.Services
             var list = containerTestResults[container];
             try
             {
-                var config = await dockerService.Client.Containers.InspectContainerAsync(container.ID);
+                var config = await DockerService.Client.Containers.InspectContainerAsync(container.ID);
                 if (config.ID != container.ID)
                 {
                     list.Add(new TestResult(TestType.CheckForRoot, TestResult.Status.Invalid, container));
@@ -73,7 +110,7 @@ namespace S7_SecureContainer.Services
             var list = containerTestResults[container];
             try
             {
-                var config = await dockerService.Client.Containers.InspectContainerAsync(container.ID);
+                var config = await DockerService.Client.Containers.InspectContainerAsync(container.ID);
                 if (config.ID != container.ID)
                 {
                     list.Add(new TestResult(TestType.CheckForRoot, TestResult.Status.Invalid, container));

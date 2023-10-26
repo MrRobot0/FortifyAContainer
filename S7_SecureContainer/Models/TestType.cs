@@ -4,5 +4,7 @@
     {
         public static string CheckForRoot { get; } = "Check for root usage";
         public static string CheckForDefaultNetwork { get; set; } = "Check for default network";
+
+        public static int GetTestCount() { return 2; }
     }
 }

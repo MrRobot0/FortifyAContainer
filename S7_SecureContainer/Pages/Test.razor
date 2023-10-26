@@ -30,7 +30,7 @@
 <div class="row">
     <div class="col-2 mt-3 d-flex">
         <div class="card bg-gradient p-2 pb-3">
-            <Index onSubmit="Refresh" onClear="Clear"></Index>
+            <Index onSubmit="doRefresh" onClear="Clear"></Index>
             
                 <div class="card mt-2">
                     <div class="card-body">
@@ -108,7 +108,7 @@
     {
         if (docker.ConnectionString != null)
         {
-            await Refresh();
+            await doRefresh();
         }
     }
 
@@ -116,8 +116,9 @@
     {
         ContainersListParameters listParameters = new ContainersListParameters();
         listParameters.All = true;
-        var containertestResults = await dockerTest.TestContainers(listParameters, docker);
-        testResultFilter = new TestResultFilter(containertestResults);
+        TestContainerModel containertestResults = await dockerTest.TestContainers(listParameters, docker);
+        ShowToasts(containertestResults.Toasts);
+        testResultFilter = new TestResultFilter(containertestResults.ContainerTestResults);
     }
 
     void Clear()
@@ -126,12 +127,18 @@
         docker.ConnectionString = String.Empty;
     }
 
+    void ShowToasts(List<ToastModel> toasts)
+    {
+        foreach (var toast in toasts)
+        {
+            toastService.ShowToast(toast.Level, toast.Message);
+        }
+    }
+
     async Task doRefresh()
     {
         IsRefreshing = true;
         await Refresh();
-        toastService.ShowToast(ToastLevel.Info, "Refresh complete!");
-        await Task.Delay(750);
         IsRefreshing = false;
     }
 

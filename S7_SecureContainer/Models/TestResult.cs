@@ -22,9 +22,9 @@ namespace S7_SecureContainer.Models
             messageBuilder.Append(" ");
             messageBuilder.Append("has ");
             messageBuilder.Append(status.ToString().ToLower());
-            this.Message = messageBuilder.ToString();
-            this.Container = container;
-            this.State = status;
+            Message = messageBuilder.ToString();
+            Container = container;
+            State = status;
         }
     }
 }
