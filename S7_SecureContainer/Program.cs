@@ -7,7 +7,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddScoped<DockerService>();
-builder.Services.AddSingleton<TestService>();
 
 builder.Services.AddBlazoredToast();
 

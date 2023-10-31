@@ -1,5 +1,6 @@
 ﻿using Docker.DotNet.Models;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Reflection.Metadata.Ecma335;
 using static S7_SecureContainer.Models.Test.TestResult;
 
@@ -7,6 +8,7 @@ namespace S7_SecureContainer.Models.Test
 {
     public class TestResultFilter
     {
+        public TestResultFilter() { }
         public readonly Dictionary<Status, Dictionary<ContainerListResponse, List<TestResult>>> AllTestResults = new()
         {
             { Status.Passed, new() },
@@ -21,7 +23,7 @@ namespace S7_SecureContainer.Models.Test
             { Status.Failed, true },
             { Status.Invalid, true }
         };
-        public void SetOption(Status key, bool value)
+        private void SetOption(Status key, bool value)
         {
             if (value)
             {
@@ -59,6 +61,11 @@ namespace S7_SecureContainer.Models.Test
             return _Options[key];
         }
 
+        public void ToggleFilter(Status status)
+        {
+            SetOption(status, !GetOption(status));
+        }
+
         public TestResultFilter(Dictionary<ContainerListResponse, List<TestResult>> containerTestResults)
         {
             foreach (var keyValuePair in containerTestResults)
@@ -83,9 +90,10 @@ namespace S7_SecureContainer.Models.Test
                 TestResultsView.Add(keyValuePair.Key, keyValuePair.Value.OrderBy(o => o.Message).ToList());
             }
         }
-        public TestResultFilter()
-        {
 
+        public void Clear()
+        {
+            TestResultsView?.Clear();
         }
     }
 }

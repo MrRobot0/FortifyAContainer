@@ -13,7 +13,17 @@
                 <InputText class="form-control" id="ConnectionString" @bind-Value="Model!.ConnectionString" />
             </div>
             <div class="d-grid gap-2 mt-3">
-                <button class="btn btn-primary" type="submit">Submit</button>
+                @if (IsRefreshing)
+                {
+                    <button class="btn btn-primary" type="button" disabled>
+                        <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                        <span role="status"></span>
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-primary" type="submit">Connect & Run</button>
+                }
                 <button class="btn btn-outline-secondary text-white" @onclick="(() => {onClear.InvokeAsync(); Model.ConnectionString = String.Empty;})" type="button">Clear</button>
             </div>
         </EditForm>
@@ -27,6 +37,8 @@
     public EventCallback onSubmit { get; set; }
     [Parameter]
     public EventCallback onClear { get; set; }
+    [Parameter]
+    public bool IsRefreshing { get; set; }
 
     protected override void OnInitialized()
     {
@@ -35,6 +47,11 @@
 
     private async Task Submit()
     {
+        if (Model.ConnectionString == String.Empty)
+        {
+            toastService.ShowToast(ToastLevel.Warning, "Please enter a value..");
+            return;
+        }
         DockerClient client;
         try
         {
