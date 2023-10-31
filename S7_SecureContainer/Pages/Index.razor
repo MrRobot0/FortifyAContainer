@@ -47,37 +47,12 @@
 
     private async Task Submit()
     {
-        if (Model.ConnectionString == String.Empty)
+        List<ToastModel> toasts = await docker.Connect(Model.ConnectionString);
+        toasts.ForEach(t => toastService.ShowToast(t.Level, t.Message));
+        if (toasts.Count(t => t.Level == ToastLevel.Error) == 0)
         {
-            toastService.ShowToast(ToastLevel.Warning, "Please enter a value..");
-            return;
+            await onSubmit.InvokeAsync();
         }
-        DockerClient client;
-        try
-        {
-            client = new DockerClientConfiguration(
-            new Uri(Model.ConnectionString))
-                .CreateClient();
-            IList<ContainerListResponse> containers = await client.Containers.ListContainersAsync(
-            new ContainersListParameters()
-            {
-                Limit = 1,
-            });
-            if (containers.Count == 0)
-            {
-                toastService.ShowToast(ToastLevel.Error, "No containers found!");
-                return;
-            }
-        }
-        catch (Exception)
-        {
-            toastService.ShowToast(ToastLevel.Error, "Could not connect to server url: " + Model.ConnectionString);
-            return;
-        }
-        toastService.ShowToast(ToastLevel.Success, "Succesfully connected to: " + Model.ConnectionString);
-        docker.ConnectionString = Model.ConnectionString;
-        docker.Client = client;
-        await onSubmit.InvokeAsync();
     }
 
     public class DockerConnectionHost

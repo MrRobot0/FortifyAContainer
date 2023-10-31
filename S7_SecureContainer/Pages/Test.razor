@@ -109,6 +109,14 @@
         {
             listParameters.All = true;
             await Refresh();
+            return;
+        }
+
+        List<ToastModel> toasts = await docker.Connect("unix:///var/run/docker.sock");
+        if (toasts.Count(t => t.Level == ToastLevel.Error) == 0)
+        {
+            toasts.ForEach(t => toastService.ShowToast(t.Level, t.Message));
+            await Refresh();
         }
         else
         {
