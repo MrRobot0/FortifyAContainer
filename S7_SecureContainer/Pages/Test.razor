@@ -103,15 +103,19 @@
     private string _SearchText = String.Empty;
     private ContainersListParameters listParameters = new();
 
-    protected override async Task OnInitializedAsync()
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (docker.ConnectionString != String.Empty)
+        if (firstRender)
         {
-            listParameters.All = true;
-            await Refresh();
-            return;
+            if (docker.ConnectionString != String.Empty)
+            {
+                listParameters.All = true;
+                await Refresh();
+                return;
+            }
+            await TryDefaultConnect();
         }
-        _ = Task.Run(() => TryDefaultConnect());
     }
 
     async Task TryDefaultConnect()
@@ -121,6 +125,7 @@
         {
             toasts.ForEach(t => toastService.ShowToast(t.Level, t.Message));
             await Refresh();
+            StateHasChanged();
         }
         else
         {
@@ -136,10 +141,11 @@
         testResultFilter = new TestResultFilter(containertestResults.ContainerTestResults);
     }
 
-    void Clear()
+    async Task Clear()
     {
         testResultFilter.Clear();
-        docker.ConnectionString = String.Empty;
+        docker.Clear();
+        StateHasChanged();
     }
 
     void ShowToasts(List<ToastModel> toasts)

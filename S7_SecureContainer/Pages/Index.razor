@@ -31,7 +31,6 @@
 </div>
 
 @code {
-    public string URI { get; set; } = "/";
     public DockerConnectionHost Model { get; set; } = new();
     [Parameter]
     public EventCallback onSubmit { get; set; }
@@ -40,7 +39,7 @@
     [Parameter]
     public bool IsRefreshing { get; set; }
 
-    protected override void OnInitialized()
+    protected override void OnAfterRender(bool firstRender)
     {
         Model.ConnectionString = docker.ConnectionString;
     }

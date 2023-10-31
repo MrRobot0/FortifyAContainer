@@ -9,7 +9,7 @@ namespace S7_SecureContainer.Models.Test
     public class TestResultFilter
     {
         public TestResultFilter() { }
-        public readonly Dictionary<Status, Dictionary<ContainerListResponse, List<TestResult>>> AllTestResults = new()
+        public Dictionary<Status, Dictionary<ContainerListResponse, List<TestResult>>> AllTestResults { get; private set; } = new()
         {
             { Status.Passed, new() },
             { Status.Failed, new() },
@@ -94,6 +94,12 @@ namespace S7_SecureContainer.Models.Test
         public void Clear()
         {
             TestResultsView?.Clear();
+            AllTestResults = new()
+            {
+                { Status.Passed, new() },
+                { Status.Failed, new() },
+                { Status.Invalid, new() }
+            };
         }
     }
 }
