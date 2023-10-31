@@ -111,7 +111,11 @@
             await Refresh();
             return;
         }
+        _ = Task.Run(() => TryDefaultConnect());
+    }
 
+    async Task TryDefaultConnect()
+    {
         List<ToastModel> toasts = await docker.Connect("unix:///var/run/docker.sock");
         if (toasts.Count(t => t.Level == ToastLevel.Error) == 0)
         {
