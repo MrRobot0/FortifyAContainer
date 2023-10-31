@@ -1,6 +1,6 @@
 ﻿using Docker.DotNet.Models;
 
-namespace S7_SecureContainer.Models
+namespace S7_SecureContainer.Models.Docker
 {
     public class ContainerFailedTests
     {

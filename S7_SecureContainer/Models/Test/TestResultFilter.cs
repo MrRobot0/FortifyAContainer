@@ -1,12 +1,14 @@
 ﻿using Docker.DotNet.Models;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Reflection.Metadata.Ecma335;
-using static S7_SecureContainer.Models.TestResult;
+using static S7_SecureContainer.Models.Test.TestResult;
 
-namespace S7_SecureContainer.Models
+namespace S7_SecureContainer.Models.Test
 {
     public class TestResultFilter
     {
+        public TestResultFilter() { }
         public readonly Dictionary<Status, Dictionary<ContainerListResponse, List<TestResult>>> AllTestResults = new()
         {
             { Status.Passed, new() },
@@ -21,7 +23,7 @@ namespace S7_SecureContainer.Models
             { Status.Failed, true },
             { Status.Invalid, true }
         };
-        public void SetOption(Status key, bool value)
+        private void SetOption(Status key, bool value)
         {
             if (value)
             {
@@ -59,33 +61,39 @@ namespace S7_SecureContainer.Models
             return _Options[key];
         }
 
+        public void ToggleFilter(Status status)
+        {
+            SetOption(status, !GetOption(status));
+        }
+
         public TestResultFilter(Dictionary<ContainerListResponse, List<TestResult>> containerTestResults)
         {
             foreach (var keyValuePair in containerTestResults)
             {
                 var FailedTests = keyValuePair.Value
-                    .Where(a => a.State == TestResult.Status.Failed)
+                    .Where(a => a.State == Status.Failed)
                     .OrderBy(o => o.Message).ToList();
                 if (FailedTests.Any()) AllTestResults[Status.Failed]
                         .Add(keyValuePair.Key, FailedTests);
 
                 var PassedTests = keyValuePair.Value
-                    .Where(a => a.State == TestResult.Status.Passed)
+                    .Where(a => a.State == Status.Passed)
                     .OrderBy(o => o.Message).ToList();
                 if (PassedTests.Any()) AllTestResults[Status.Passed]
                     .Add(keyValuePair.Key, PassedTests);
 
                 var InvalidTests = keyValuePair.Value
-                    .Where(a => a.State == TestResult.Status.Invalid)
+                    .Where(a => a.State == Status.Invalid)
                     .OrderBy(o => o.Message).ToList();
                 if (InvalidTests.Any()) AllTestResults[Status.Invalid]
                     .Add(keyValuePair.Key, InvalidTests);
                 TestResultsView.Add(keyValuePair.Key, keyValuePair.Value.OrderBy(o => o.Message).ToList());
             }
         }
-        public TestResultFilter()
-        {
 
+        public void Clear()
+        {
+            TestResultsView?.Clear();
         }
     }
 }

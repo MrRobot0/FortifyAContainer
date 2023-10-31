@@ -1,4 +1,4 @@
-﻿namespace S7_SecureContainer.Models
+﻿namespace S7_SecureContainer.Models.Test
 {
     public class TestStillRunningExpection : Exception
     {

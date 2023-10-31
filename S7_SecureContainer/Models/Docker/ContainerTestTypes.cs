@@ -1,6 +1,6 @@
-﻿namespace S7_SecureContainer.Models
+﻿namespace S7_SecureContainer.Models.Docker
 {
-    public static class TestType
+    public static class ContainerTestTypes
     {
         public const string CheckForRoot = "Check for root usage";
         public const string CheckForDefaultNetwork = "Check for default network";

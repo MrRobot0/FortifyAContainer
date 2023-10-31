@@ -177,6 +177,7 @@ namespace S7_SecureContainer.Services
         {
             var config = await DockerService.Client.Containers.InspectContainerAsync(container.ID);
         }
+
         private void CleanContainerTestResult(ContainerListResponse container)
         {
             containerTestResults.Remove(container);
