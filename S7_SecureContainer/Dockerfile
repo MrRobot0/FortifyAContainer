@@ -3,11 +3,10 @@
 FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS base
 WORKDIR /app
 EXPOSE 80
-EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /src
-COPY ["S7_SecureContainer/S7_SecureContainer.csproj", "S7_SecureContainer/"]
+COPY ["S7_SecureContainer.csproj", "S7_SecureContainer/"]
 RUN dotnet restore "S7_SecureContainer/S7_SecureContainer.csproj"
 COPY . .
 WORKDIR "/src/S7_SecureContainer"
