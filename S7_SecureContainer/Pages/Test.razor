@@ -106,30 +106,43 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (!firstRender)
         {
-            if (docker.ConnectionString != String.Empty)
-            {
-                listParameters.All = true;
-                await Refresh();
-                return;
-            }
-            await TryDefaultConnect();
+            return;
         }
+        if (docker.ConnectionString != string.Empty)
+        {
+            listParameters.All = true;
+            await Refresh();
+            return;
+        }
+        bool connectionSuccess = await TryConnect("unix:///var/run/docker.sock");
+        if (connectionSuccess)
+        {
+            return;
+        }
+        string? dockerHost = Environment.GetEnvironmentVariable("DockerHost");
+        if(dockerHost == null)
+        {
+            toastService.ShowToast(ToastLevel.Error, "No 'DockerHost' present in enviroment variables");
+            return;
+        }
+         await TryConnect(dockerHost);
     }
 
-    async Task TryDefaultConnect()
+    async Task<bool> TryConnect(string connectionString)
     {
-        List<ToastModel> toasts = await docker.Connect("unix:///var/run/docker.sock");
+        List<ToastModel> toasts = await docker.Connect(connectionString);
         if (toasts.Count(t => t.Level == ToastLevel.Error) == 0)
         {
             toasts.ForEach(t => toastService.ShowToast(t.Level, t.Message));
             await Refresh();
             StateHasChanged();
+            return true;
         }
         else
         {
-            toastService.ShowToast(ToastLevel.Info, "Please connect to a service!");
+            return false;
         }
     }
 
