@@ -41,7 +41,10 @@
 
     protected override void OnAfterRender(bool firstRender)
     {
-        Model.ConnectionString = docker.ConnectionString;
+        if (firstRender)
+        {
+            Model.ConnectionString = docker.ConnectionString;
+        }
     }
 
     private async Task Submit()
@@ -51,6 +54,7 @@
         if (toasts.Count(t => t.Level == ToastLevel.Error) == 0)
         {
             await onSubmit.InvokeAsync();
+            StateHasChanged();
         }
     }
 
