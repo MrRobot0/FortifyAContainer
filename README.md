@@ -11,6 +11,8 @@ services:
         ports:
             - 8080:80
         restart: unless-stopped
+        networks:
+            - securecontainer
     dockerproxy:
         image: ghcr.io/tecnativa/docker-socket-proxy:latest
         environment:
@@ -19,5 +21,12 @@ services:
             - POST=0 # Disallow any POST operations (effectively read-only)
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock:ro # Mounted as read-only
+        ports:
+            - 2375
         restart: unless-stopped
+        networks:
+            - securecontainer
+
+networks:
+  securecontainer:
 ```

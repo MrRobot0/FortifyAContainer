@@ -18,7 +18,7 @@ namespace S7_SecureContainer.Services
         public string ConnectionString { get; set; } = string.Empty;
         public bool ManualHostInput { get; set; } = false;
         public DockerClient? Client { get; set; } = null;
-        public const string DefaultHost = "tcp:///dockerproxy";
+        public const string DefaultHost = "tcp:///dockerproxy:2375";
         public const string DefaultUnixHost = "unix:///var/run/docker.sock";
         private readonly IToastService ToastService;
         public DockerService (IToastService toastService)
