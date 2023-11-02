@@ -48,7 +48,7 @@ namespace S7_SecureContainer.Services
         public async Task<bool> TryAutoConnect()
         {
             ToastService.ShowToast(ToastLevel.Info, "Trying to automatically connect..");
-            if (await TryConnect(DefaultUnixHost)) 
+            if (await TryConnect(DefaultUnixHost, false)) 
             {
                 ToastService.ShowToast(ToastLevel.Error, 
                     string.Format("Please do not use a direct connection to docker host using: {0}",
@@ -63,13 +63,16 @@ namespace S7_SecureContainer.Services
             return false;
         }
 
-        private async Task<bool> TryConnect(string connectionString)
+        private async Task<bool> TryConnect(string connectionString, bool showToasts = true)
         {
             if (connectionString == string.Empty) { return false; }
             List<ToastModel> toasts = await Connect(connectionString);
             if (!toasts.Any(t => t.Level == ToastLevel.Error))
             {
-                toasts.ForEach(t => ToastService.ShowToast(t.Level, t.Message));
+                if (showToasts)
+                {
+                    toasts.ForEach(t => ToastService.ShowToast(t.Level, t.Message));
+                }
                 return true;
             }
             else
