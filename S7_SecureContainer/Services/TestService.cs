@@ -29,6 +29,11 @@ namespace S7_SecureContainer.Services
             {
                 throw new TestStillRunningExpection();
             }
+            if (DockerService.ConnectionString == string.Empty)
+            {
+                ToastService.ShowToast(ToastLevel.Warning, "Not connected!");
+                return new();
+            }
             TestRunning = true;
             testToastsMessages.stopwatch.Restart();
             ToastService.ShowToast(ToastLevel.Info, "Running tests..");
