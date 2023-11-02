@@ -10,7 +10,7 @@
         {
             <button @onclick="Refresh" class="btn btn-primary text-white position-relative">
                 <i class="bi bi-arrow-clockwise"></i>
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-dark">
                     @dockerCount
                 </span>
             </button>
@@ -37,24 +37,24 @@
                         <input class="form-control text-white" @bind-value="_SearchText" @bind-value:event="oninput" placeholder="Search.."></input>
                         <div class="d-grid gap-2 mt-2">
                         <button @onclick="(() => testResultFilter.ToggleFilter(TestResult.Status.Passed))" 
-                            class="btn mt-2 mx-2 position-relative 
+                            class="shadow-lg btn mt-2 mx-2 position-relative 
                                 @(testResultFilter.GetOption(TestResult.Status.Passed) ? "btn-success" : "btn-secondary")">
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-dark">
                                 @testResultFilter.AllTestResults[TestResult.Status.Passed].Count
                             
                             </span>Passed</button>
                         <button @onclick="(() => testResultFilter.ToggleFilter(TestResult.Status.Failed))" 
-                            class="btn mt-2 mx-2 position-relative 
+                            class="shadow-lg btn mt-2 mx-2 position-relative 
                                 @(testResultFilter.GetOption(TestResult.Status.Failed) ? "btn-danger" : "btn-secondary")">
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-dark">
                                 @testResultFilter.AllTestResults[TestResult.Status.Failed].Count
                                 
                             </span>Failed
                         </button>
                         <button @onclick="(() => testResultFilter.ToggleFilter(TestResult.Status.Invalid))" 
-                            class="btn mt-2 mb-1 mx-2 position-relative 
+                            class="shadow-lg btn mt-2 mb-1 mx-2 position-relative 
                                 @(testResultFilter.GetOption(TestResult.Status.Invalid) ? "btn-warning" : "btn-secondary")">
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-dark">
                                 @testResultFilter.AllTestResults[TestResult.Status.Invalid].Count
                                 
                             </span>Invalid
@@ -66,36 +66,51 @@
         </div>
     </div>
     <div class="col-10">
-        <div class="row mt-3">
-                @foreach (var containerTestResults in ContainerTestResultsView)
+        @if (ContainerTestResultsView.Any())
+        {
+        <div class="table-responsive">
+        <table class="table table-dark table-hover w-auto">
+                <thead>
+                <tr>
+                    <th scope="col" >Container</th>
+                    @foreach (var test in ContainerTestTypes.All)
+                    {
+                        <th scope="col">@test <i class="bi bi-info-circle"></i></th>
+                    }
+                </tr>
+            </thead>
+            <tbody class="table-group-divider">
+            @foreach (var containerTestResults in ContainerTestResultsView)
             {
-                <div class="col-12 col-sm-6 col-md-6 col-lg-4 col-xl-3 col-xxl-2 mb-3">
-                    <div class="card">
-                      <div class="card-header text-bg-secondary text-center fw-bold text-capitalize" style="min-height: 4em">
-                            @containerTestResults.Key.Names.First().TrimStart('/')
-                      </div>
-                      <ul class="list-group list-group-flush">
-                        @foreach (var testResult in containerTestResults.Value)
-                        {
-                                <li class="list-group-item text-bg-dark" style="min-height: 4em">
-                                @if (testResult.State == TestResult.Status.Passed) 
-                                {
-                                    <i class="bi bi-check-circle-fill text-success"></i>
-                                }
-                                else if (testResult.State == TestResult.Status.Failed)
-                                {
-                                    <i class="bi bi-x-circle-fill text-danger"></i>
-                                }
-                                    @(" " + testResult.Message)
-                            </li>
-                        }
-                      </ul>
-                    </div>
-                </div>
+                <tr>
+                    <td class="text-capitalize">@containerTestResults.Key.Names.FirstOrDefault(string.Empty).TrimStart('/').Replace("-1", string.Empty)</td>
+                    @foreach (var testResult in containerTestResults.Value)
+                    {
+                        <td class="text-center">
+                            @if (testResult.State == TestResult.Status.Passed)
+                            {
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                            }
+                            else if (testResult.State == TestResult.Status.Failed)
+                            {
+                                <i class="bi bi-x-circle-fill text-danger"></i>
+                            }
+                            else
+                            {
+                                <i class="bi bi-x-circle-fill text-warning"></i>
+                            }
+                        </td>
+                    }
+                </tr>
             }
+            </tbody>
+        </table>
         </div>
+        }
     </div>
 </div>
+
+
 @code {
     public static string URI { get; set; } = "/";
     private Dictionary<ContainerListResponse, List<TestResult>> ContainerTestResultsView => testResultFilter.TestResultsView.Where(a => a.Key.Names.First().ToLower().Contains(_SearchText.ToLower())).ToDictionary(kv => kv.Key, kv => kv.Value);

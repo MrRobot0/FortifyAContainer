@@ -2,8 +2,8 @@
 {
     public static class ContainerTestTypes
     {
-        public const string CheckForRoot = "Check for root usage";
-        public const string CheckForDefaultNetwork = "Check for default network";
+        public const string CheckForRoot = "Root user";
+        public const string CheckForDefaultNetwork = "Bridge network";
 
         public static List<string> All = new()
         {
