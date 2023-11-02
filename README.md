@@ -2,7 +2,7 @@
 
 ## Installation
 
-Docker compose
+### Docker compose (Recommended):
 ```docker
 version: '3.8'
 services:
