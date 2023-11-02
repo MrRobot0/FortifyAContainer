@@ -1,13 +1,36 @@
 ﻿using Blazored.Toast.Services;
+using System.Diagnostics;
 
 namespace S7_SecureContainer.Models.Test
 {
-    public static class TestToastsMessages
+    public class TestToastsMessages
     {
-        public static ToastModel TestComplete = new(ToastLevel.Success,
-                        "Test(s) complete!");
-        public static ToastModel TestNotFullyComplete = new(ToastLevel.Error,
-                        String.Format("Some tests were not succesfully run, retried {0} times. Please try again later!", RetryCount));
-        public const int RetryCount = 10;
+        private readonly IToastService _toastService;
+        public TestToastsMessages(IToastService toastService) {
+            _toastService = toastService;
+        }
+
+        public void ShowToast(ToastModel toast)
+        {
+            _toastService.ShowToast(toast.Level, toast.Message);
+        }
+
+        public readonly Stopwatch stopwatch = new();
+        public const int MaxRetries = 10;
+
+        public ToastModel TestComplete()
+        {
+            return new(ToastLevel.Success,
+                        string.Format(testComplete, stopwatch.ElapsedMilliseconds));
+        }
+
+        public ToastModel TestNotFullyComplete()
+        {
+            return new(ToastLevel.Error,
+                        string.Format(testNotFullyComplete, MaxRetries));
+        }
+
+        private const string testComplete = "Test(s) complete in {0}ms!";
+        private const string testNotFullyComplete = "Some tests were not succesfully run, retried {0} times. Please try again later!";
     }
 }

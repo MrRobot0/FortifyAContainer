@@ -1,7 +1,9 @@
-﻿using Docker.DotNet.Models;
+﻿using Blazored.Toast.Services;
+using Docker.DotNet.Models;
 using S7_SecureContainer.Models.Docker;
 using S7_SecureContainer.Models.Test;
 using System.ComponentModel;
+using System.Diagnostics;
 
 namespace S7_SecureContainer.Services
 {
@@ -9,23 +11,34 @@ namespace S7_SecureContainer.Services
     {
         private readonly List<Task> Tasks= new();
         private readonly Dictionary<ContainerListResponse, List<TestResult>> containerTestResults = new();
-        private DockerService DockerService;
+        private readonly DockerService DockerService;
+        private readonly IToastService ToastService;
+        private readonly TestToastsMessages testToastsMessages;
 
         public bool TestRunning { get; private set; } = false;
 
-        public TestService () { }
+        public TestService (IToastService toastService, DockerService dockerService) {
+            ToastService = toastService;
+            DockerService = dockerService;
+            testToastsMessages = new TestToastsMessages(toastService);
+        }
 
-        public async Task<ContainerTestModel> TestDockerContainers(ContainersListParameters listParameters, DockerService dockerService)
+        public async Task<ContainerTestModel> TestDockerContainers()
         {
             if (!Task.WhenAll(Tasks).IsCompleted)
             {
                 throw new TestStillRunningExpection();
             }
             TestRunning = true;
-            DockerService = dockerService;
+            testToastsMessages.stopwatch.Restart();
+            ToastService.ShowToast(ToastLevel.Info, "Running tests..");
 
             ContainerFailedTests containerFailedTests = new();
             ContainerTestModel testContainerModel = new();
+            ContainersListParameters listParameters = new()
+            {
+                All = true
+            };
             List<ContainerListResponse> containers = await getContainerList(listParameters);
 
             containerTestResults.Clear();
@@ -37,7 +50,7 @@ namespace S7_SecureContainer.Services
             CheckIfTestsAreComplete(containerTestResults, containerFailedTests);
 
             while (!containerFailedTests.TestComplete 
-                && containerFailedTests.RetryCount <= TestToastsMessages.RetryCount)
+                && containerFailedTests.RetryCount <= TestToastsMessages.MaxRetries)
             {
                 Tasks.Clear();
                 ReRunTests(containerFailedTests);
@@ -45,13 +58,15 @@ namespace S7_SecureContainer.Services
                 CheckIfTestsAreComplete(containerTestResults, containerFailedTests);
             }
 
-            if (containerFailedTests.TestComplete)
-                testContainerModel.Toasts.Add(TestToastsMessages.TestComplete);
-            else
-                testContainerModel.Toasts.Add(TestToastsMessages.TestNotFullyComplete);
-
-            testContainerModel.ContainerTestResults = containerTestResults;
+            testContainerModel.Results = containerTestResults;
             TestRunning = false;
+            testToastsMessages.stopwatch.Stop();
+
+            if (containerFailedTests.TestComplete)
+                testToastsMessages.ShowToast(testToastsMessages.TestComplete());
+            else
+                testToastsMessages.ShowToast(testToastsMessages.TestNotFullyComplete());
+
             return testContainerModel;
         }
 
