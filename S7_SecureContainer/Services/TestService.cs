@@ -2,8 +2,6 @@
 using Docker.DotNet.Models;
 using S7_SecureContainer.Models.Docker;
 using S7_SecureContainer.Models.Test;
-using System.ComponentModel;
-using System.Diagnostics;
 
 namespace S7_SecureContainer.Services
 {
@@ -105,21 +103,33 @@ namespace S7_SecureContainer.Services
             }
         }
 
-        private void RunTestsOnContainer(List<string> tests, ContainerListResponse container)
+        private void RunTestsOnContainer(List<ContainerTestType> tests, ContainerListResponse container)
         {
             foreach (var testType in tests)
             {
-                switch (testType)
+                switch (testType.Name)
                 {
-                    case ContainerTestTypes.CheckForRoot:
+                    case ContainerTestTypes.Root:
                         lock (Tasks)
                             Tasks.Add(Task.Run(() => CheckForRoot(container)));
                         break;
-                    case ContainerTestTypes.CheckForDefaultNetwork:
+                    case ContainerTestTypes.DefaultNetwork:
                         lock (Tasks)
                             Tasks.Add(Task.Run(() => CheckForDefaultNetwork(container)));
                         break;
-                    default:
+                    case ContainerTestTypes.DockerSocket:
+                        lock (Tasks)
+                            Tasks.Add(Task.Run(() => CheckDockerSocket(container)));
+                        break;
+                    case ContainerTestTypes.CPULimit:
+                        lock (Tasks)
+                            Tasks.Add(Task.Run(() => CheckCPULimit(container)));
+                        break;
+					case ContainerTestTypes.MemLimit:
+						lock (Tasks)
+							Tasks.Add(Task.Run(() => CheckMemLimit(container)));
+						break;
+					default:
                         break;
                 }
             }
@@ -134,24 +144,24 @@ namespace S7_SecureContainer.Services
                 if (config.ID != container.ID)
                 {
                     lock (containerTestResults)
-                        list.Add(new TestResult(ContainerTestTypes.CheckForRoot, TestResult.Status.Invalid, container));
+                        list.Add(new TestResult(ContainerTestTypes.Root, TestResult.Status.Invalid, container));
                 }
                 var user = config.Config.User;
                 if (user != "0:0" && user != "root")
                 {
                     lock (containerTestResults)
-                        list.Add(new TestResult(ContainerTestTypes.CheckForRoot, TestResult.Status.Passed, container));
+                        list.Add(new TestResult(ContainerTestTypes.Root, TestResult.Status.Passed, container));
                 }
                 else
                 {
                     lock (containerTestResults)
-                        list.Add(new TestResult(ContainerTestTypes.CheckForRoot, TestResult.Status.Failed, container));
+                        list.Add(new TestResult(ContainerTestTypes.Root, TestResult.Status.Failed, container));
                 }
             }
             catch (Exception)
             {
                 lock (containerTestResults)
-                    list.Add(new TestResult(ContainerTestTypes.CheckForRoot, TestResult.Status.Invalid, container));
+                    list.Add(new TestResult(ContainerTestTypes.Root, TestResult.Status.Invalid, container));
             }
         }
 
@@ -164,13 +174,13 @@ namespace S7_SecureContainer.Services
                 if (config.ID != container.ID)
                 {
                     lock (containerTestResults)
-                        list.Add(new TestResult(ContainerTestTypes.CheckForRoot, TestResult.Status.Invalid, container));
+                        list.Add(new TestResult(ContainerTestTypes.Root, TestResult.Status.Invalid, container));
                 }
                 var networks = config.NetworkSettings.Networks;
                 if (networks == null)
                 {
                     lock (containerTestResults)
-                        list.Add(new TestResult(ContainerTestTypes.CheckForDefaultNetwork, TestResult.Status.Invalid, container));
+                        list.Add(new TestResult(ContainerTestTypes.DefaultNetwork, TestResult.Status.Invalid, container));
                     return;
                 }
 
@@ -179,24 +189,98 @@ namespace S7_SecureContainer.Services
                     if (network.Key == "bridge")
                     {
                         lock (containerTestResults)
-                            list.Add(new TestResult(ContainerTestTypes.CheckForDefaultNetwork, TestResult.Status.Failed, container));
+                            list.Add(new TestResult(ContainerTestTypes.DefaultNetwork, TestResult.Status.Failed, container));
                         return;
                     }
                 }
                 lock (containerTestResults)
-                    list.Add(new TestResult(ContainerTestTypes.CheckForDefaultNetwork, TestResult.Status.Passed, container));
+                    list.Add(new TestResult(ContainerTestTypes.DefaultNetwork, TestResult.Status.Passed, container));
             }
             catch (Exception)
             {
                 lock (containerTestResults)
-                    list.Add(new TestResult(ContainerTestTypes.CheckForDefaultNetwork, TestResult.Status.Invalid, container));
+                    list.Add(new TestResult(ContainerTestTypes.DefaultNetwork, TestResult.Status.Invalid, container));
             }
         }
 
-        private async Task CheckLimitResources(ContainerListResponse container)
+        private async Task CheckCPULimit(ContainerListResponse container)
         {
-            var config = await DockerService.Client.Containers.InspectContainerAsync(container.ID);
-        }
+			var list = containerTestResults[container];
+			try
+			{
+				var config = await DockerService.Client.Containers.InspectContainerAsync(container.ID);
+				var cpu = config.HostConfig.NanoCPUs;
+                if (cpu == 0)
+                {
+					lock (containerTestResults)
+						list.Add(new TestResult(ContainerTestTypes.CPULimit, TestResult.Status.Warning, container, "It's recommended to limit CPUs used"));
+                    return;
+				}
+				lock (containerTestResults)
+					list.Add(new TestResult(ContainerTestTypes.CPULimit, TestResult.Status.Passed, container));
+			}
+			catch (Exception)
+			{
+				lock (containerTestResults)
+					list.Add(new TestResult(ContainerTestTypes.CPULimit, TestResult.Status.Invalid, container));
+			}
+		}
+		private async Task CheckMemLimit(ContainerListResponse container)
+		{
+			var list = containerTestResults[container];
+			try
+			{
+				var config = await DockerService.Client.Containers.InspectContainerAsync(container.ID);
+				var mem = config.HostConfig.Memory;
+				if (mem == 0)
+				{
+					lock (containerTestResults)
+						list.Add(new TestResult(ContainerTestTypes.MemLimit, TestResult.Status.Warning, container, "It's recommended to limit the memory used"));
+					return;
+				}
+				lock (containerTestResults)
+					list.Add(new TestResult(ContainerTestTypes.MemLimit, TestResult.Status.Passed, container));
+			}
+			catch (Exception)
+			{
+				lock (containerTestResults)
+					list.Add(new TestResult(ContainerTestTypes.MemLimit, TestResult.Status.Invalid, container));
+			}
+		}
+
+		private async Task CheckDockerSocket(ContainerListResponse container)
+        {
+			var list = containerTestResults[container];
+			try
+			{
+				var config = await DockerService.Client.Containers.InspectContainerAsync(container.ID);
+                var mounts = config.Mounts;
+                foreach (var mount in mounts)
+                {
+                    if (mount.Source == "/var/run/docker.sock")
+                    {
+                        if (mount.RW)
+                        {
+							lock (containerTestResults)
+								list.Add(new TestResult(ContainerTestTypes.DockerSocket, TestResult.Status.Failed, container));
+						}
+                        else
+                        {
+							lock (containerTestResults)
+								list.Add(new TestResult(ContainerTestTypes.DockerSocket, TestResult.Status.Warning, container, "Is mounted, but as read-only"));
+						}
+						return;
+					}
+                }
+				lock (containerTestResults)
+					list.Add(new TestResult(ContainerTestTypes.DockerSocket, TestResult.Status.Passed, container));
+			}
+			catch (Exception)
+			{
+				lock (containerTestResults)
+					list.Add(new TestResult(ContainerTestTypes.DockerSocket, TestResult.Status.Invalid, container));
+			}
+		}
 
         private void CleanContainerTestResult(ContainerListResponse container)
         {
@@ -223,13 +307,13 @@ namespace S7_SecureContainer.Services
             containerFailedTests.TestComplete = testComplete;
         }
 
-        private List<string> GetMissingTestResults(List<TestResult> testResults)
+        private List<ContainerTestType> GetMissingTestResults(List<TestResult> testResults)
         {
-            List<string> testTypes = new();
+            List<ContainerTestType> testTypes = new();
             foreach (var testResult in ContainerTestTypes.All){
-                if (!testResults.Any(a => a.Message == testResult))
+                if (!testResults.Any(a => a.Message == testResult.Name))
                 {
-                    testTypes.Add(testResult);
+                    testTypes.Add(ContainerTestTypes.All.Where(a => a.Name == testResult.Name).Single());
                 }
             }
             return testTypes;

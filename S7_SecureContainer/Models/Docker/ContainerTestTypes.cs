@@ -2,14 +2,21 @@
 {
     public static class ContainerTestTypes
     {
-        public const string CheckForRoot = "Root user";
-        public const string CheckForDefaultNetwork = "Bridge network";
+		public const string DefaultNetwork = "Bridge network";
+		public const string CPULimit = "CPU limit";
+		public const string DockerSocket = "Docker Socket";
+		public const string MemLimit = "Memory limit";
+		public const string Root = "Root user";
 
-        public static List<string> All = new()
+		// Place tests in alphabetical order
+		public static List<ContainerTestType> All = new()
         {
-            { CheckForRoot },
-            { CheckForDefaultNetwork },
-        };
+			{ new() { Name = DefaultNetwork, Tooltip = "Check if the container uses 'bridge' as network" } },
+			{ new() { Name = CPULimit, Tooltip = "Check if the container uses '/var/run/docker.sock'" } },
+			{ new() { Name = DockerSocket, Tooltip = "Check if the container uses '/var/run/docker.sock'" } },
+            { new() { Name = MemLimit, Tooltip = "Check if the container uses '/var/run/docker.sock'" } },
+			{ new() { Name = Root, Tooltip = "Check if the container uses '0:0' or 'root' as user" } },
+		};
         public static int GetTestCount() { return All.Count; }
     }
 }
