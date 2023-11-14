@@ -7,16 +7,18 @@ namespace S7_SecureContainer.Models.Test
     {
         public ContainerListResponse Container { get; set; }
         public string Message { get; set; }
+        public string Tooltip { get; set; }
         public Status State { get; set; }
 
         public enum Status
         {
             Passed,
             Failed,
+            Warning,
             Invalid
         }
 
-        public TestResult(string message, Status status, ContainerListResponse container)
+        public TestResult(string message, Status status, ContainerListResponse container, string tooltip = "")
         {
             StringBuilder messageBuilder = new StringBuilder();
             messageBuilder.Append(message);
@@ -26,6 +28,7 @@ namespace S7_SecureContainer.Models.Test
             Message = messageBuilder.ToString();
             Container = container;
             State = status;
+            Tooltip = tooltip;
         }
     }
 }
