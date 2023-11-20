@@ -2,6 +2,7 @@
 using Docker.DotNet.Models;
 using S7_SecureContainer.Models.Docker;
 using S7_SecureContainer.Models.Test;
+using S7_SecureContainer.Models.Tests;
 
 namespace S7_SecureContainer.Services
 {
@@ -42,7 +43,7 @@ namespace S7_SecureContainer.Services
             {
                 All = true
             };
-            List<ContainerListResponse> containers = await getContainerList(listParameters);
+            List<ContainerListResponse> containers = await GetContainerList(listParameters);
 
             containerTestResults.Clear();
             Tasks.Clear();
@@ -73,7 +74,7 @@ namespace S7_SecureContainer.Services
             return testContainerModel;
         }
 
-        private async Task<List<ContainerListResponse>> getContainerList(ContainersListParameters listParameters)
+        private async Task<List<ContainerListResponse>> GetContainerList(ContainersListParameters listParameters)
         {
             if (DockerService.Client == null ) return new();
             IList<ContainerListResponse> containers = await DockerService.Client.Containers.ListContainersAsync(listParameters);
@@ -105,182 +106,37 @@ namespace S7_SecureContainer.Services
 
         private void RunTestsOnContainer(List<ContainerTestType> tests, ContainerListResponse container)
         {
+            if (DockerService.Client == null) throw new Exception("DockerService is not available");
+            Task<ContainerInspectResponse> containerInspectResponse = DockerService.Client.Containers.InspectContainerAsync(container.ID);
             foreach (var testType in tests)
             {
                 switch (testType.Name)
                 {
                     case ContainerTestTypes.Root:
                         lock (Tasks)
-                            Tasks.Add(Task.Run(() => CheckForRoot(container)));
+                            Tasks.Add(Task.Run(async () => containerTestResults[container].Add(await CheckForRoot.Run(await containerInspectResponse))));
                         break;
                     case ContainerTestTypes.DefaultNetwork:
                         lock (Tasks)
-                            Tasks.Add(Task.Run(() => CheckForDefaultNetwork(container)));
+                            Tasks.Add(Task.Run(async () => containerTestResults[container].Add(await CheckForDefaultNetwork.Run(await containerInspectResponse))));
                         break;
                     case ContainerTestTypes.DockerSocket:
                         lock (Tasks)
-                            Tasks.Add(Task.Run(() => CheckDockerSocket(container)));
+                            Tasks.Add(Task.Run(async () => containerTestResults[container].Add(await CheckDockerSocket.Run(await containerInspectResponse))));
                         break;
                     case ContainerTestTypes.CPULimit:
                         lock (Tasks)
-                            Tasks.Add(Task.Run(() => CheckCPULimit(container)));
+                            Tasks.Add(Task.Run(async () => containerTestResults[container].Add(await CheckCPULimit.Run(await containerInspectResponse))));
                         break;
 					case ContainerTestTypes.MemLimit:
 						lock (Tasks)
-							Tasks.Add(Task.Run(() => CheckMemLimit(container)));
+							Tasks.Add(Task.Run(async () => containerTestResults[container].Add(await CheckMemLimit.Run(await containerInspectResponse))));
 						break;
 					default:
-                        break;
+                        throw new Exception("Test does not exist!");
                 }
             }
         }
-
-        private async Task CheckForRoot(ContainerListResponse container)
-        {
-            var list = containerTestResults[container];
-            try
-            {
-                var config = await DockerService.Client.Containers.InspectContainerAsync(container.ID);
-                if (config.ID != container.ID)
-                {
-                    lock (containerTestResults)
-                        list.Add(new TestResult(ContainerTestTypes.Root, TestResult.Status.Invalid, container));
-                }
-                var user = config.Config.User;
-                if (user != "0:0" && user != "root")
-                {
-                    lock (containerTestResults)
-                        list.Add(new TestResult(ContainerTestTypes.Root, TestResult.Status.Passed, container));
-                }
-                else
-                {
-                    lock (containerTestResults)
-                        list.Add(new TestResult(ContainerTestTypes.Root, TestResult.Status.Failed, container));
-                }
-            }
-            catch (Exception)
-            {
-                lock (containerTestResults)
-                    list.Add(new TestResult(ContainerTestTypes.Root, TestResult.Status.Invalid, container));
-            }
-        }
-
-        private async Task CheckForDefaultNetwork(ContainerListResponse container)
-        {
-            var list = containerTestResults[container];
-            try
-            {
-                var config = await DockerService.Client.Containers.InspectContainerAsync(container.ID);
-                if (config.ID != container.ID)
-                {
-                    lock (containerTestResults)
-                        list.Add(new TestResult(ContainerTestTypes.Root, TestResult.Status.Invalid, container));
-                }
-                var networks = config.NetworkSettings.Networks;
-                if (networks == null)
-                {
-                    lock (containerTestResults)
-                        list.Add(new TestResult(ContainerTestTypes.DefaultNetwork, TestResult.Status.Invalid, container));
-                    return;
-                }
-
-                foreach (var network in networks)
-                {
-                    if (network.Key == "bridge")
-                    {
-                        lock (containerTestResults)
-                            list.Add(new TestResult(ContainerTestTypes.DefaultNetwork, TestResult.Status.Failed, container));
-                        return;
-                    }
-                }
-                lock (containerTestResults)
-                    list.Add(new TestResult(ContainerTestTypes.DefaultNetwork, TestResult.Status.Passed, container));
-            }
-            catch (Exception)
-            {
-                lock (containerTestResults)
-                    list.Add(new TestResult(ContainerTestTypes.DefaultNetwork, TestResult.Status.Invalid, container));
-            }
-        }
-
-        private async Task CheckCPULimit(ContainerListResponse container)
-        {
-			var list = containerTestResults[container];
-			try
-			{
-				var config = await DockerService.Client.Containers.InspectContainerAsync(container.ID);
-				var cpu = config.HostConfig.NanoCPUs;
-                if (cpu == 0)
-                {
-					lock (containerTestResults)
-						list.Add(new TestResult(ContainerTestTypes.CPULimit, TestResult.Status.Warning, container, "It's recommended to limit CPUs used"));
-                    return;
-				}
-				lock (containerTestResults)
-					list.Add(new TestResult(ContainerTestTypes.CPULimit, TestResult.Status.Passed, container));
-			}
-			catch (Exception)
-			{
-				lock (containerTestResults)
-					list.Add(new TestResult(ContainerTestTypes.CPULimit, TestResult.Status.Invalid, container));
-			}
-		}
-		private async Task CheckMemLimit(ContainerListResponse container)
-		{
-			var list = containerTestResults[container];
-			try
-			{
-				var config = await DockerService.Client.Containers.InspectContainerAsync(container.ID);
-				var mem = config.HostConfig.Memory;
-				if (mem == 0)
-				{
-					lock (containerTestResults)
-						list.Add(new TestResult(ContainerTestTypes.MemLimit, TestResult.Status.Warning, container, "It's recommended to limit the memory used"));
-					return;
-				}
-				lock (containerTestResults)
-					list.Add(new TestResult(ContainerTestTypes.MemLimit, TestResult.Status.Passed, container));
-			}
-			catch (Exception)
-			{
-				lock (containerTestResults)
-					list.Add(new TestResult(ContainerTestTypes.MemLimit, TestResult.Status.Invalid, container));
-			}
-		}
-
-		private async Task CheckDockerSocket(ContainerListResponse container)
-        {
-			var list = containerTestResults[container];
-			try
-			{
-				var config = await DockerService.Client.Containers.InspectContainerAsync(container.ID);
-                var mounts = config.Mounts;
-                foreach (var mount in mounts)
-                {
-                    if (mount.Source == "/var/run/docker.sock")
-                    {
-                        if (mount.RW)
-                        {
-							lock (containerTestResults)
-								list.Add(new TestResult(ContainerTestTypes.DockerSocket, TestResult.Status.Failed, container));
-						}
-                        else
-                        {
-							lock (containerTestResults)
-								list.Add(new TestResult(ContainerTestTypes.DockerSocket, TestResult.Status.Warning, container, "Is mounted, but as read-only"));
-						}
-						return;
-					}
-                }
-				lock (containerTestResults)
-					list.Add(new TestResult(ContainerTestTypes.DockerSocket, TestResult.Status.Passed, container));
-			}
-			catch (Exception)
-			{
-				lock (containerTestResults)
-					list.Add(new TestResult(ContainerTestTypes.DockerSocket, TestResult.Status.Invalid, container));
-			}
-		}
 
         private void CleanContainerTestResult(ContainerListResponse container)
         {

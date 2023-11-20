@@ -5,7 +5,6 @@ namespace S7_SecureContainer.Models.Test
 {
     public class TestResult
     {
-        public ContainerListResponse Container { get; set; }
         public string Message { get; set; }
         public string Tooltip { get; set; }
         public Status State { get; set; }
@@ -18,7 +17,7 @@ namespace S7_SecureContainer.Models.Test
             Invalid
         }
 
-        public TestResult(string message, Status status, ContainerListResponse container, string tooltip = "")
+        public TestResult(string message, Status status, string tooltip = "")
         {
             StringBuilder messageBuilder = new StringBuilder();
             messageBuilder.Append(message);
@@ -26,7 +25,6 @@ namespace S7_SecureContainer.Models.Test
             messageBuilder.Append("has ");
             messageBuilder.Append(status.ToString().ToLower());
             Message = messageBuilder.ToString();
-            Container = container;
             State = status;
             Tooltip = tooltip;
         }
