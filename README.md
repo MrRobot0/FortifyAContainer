@@ -1,4 +1,5 @@
 # S7_SecureContainer
+[![Docker](https://github.com/MrRobot0/S7_SecureContainer/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/MrRobot0/S7_SecureContainer/actions/workflows/docker-publish.yml)
 
 ## Installation
 
