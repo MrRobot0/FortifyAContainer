@@ -1,7 +1,7 @@
 ﻿using Docker.DotNet.Models;
 using System.Text;
 
-namespace S7_SecureContainer.Models.Test
+namespace FortifyAContainerUI.Models.Test
 {
     public class TestResult
     {

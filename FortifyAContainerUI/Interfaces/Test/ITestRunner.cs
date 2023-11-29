@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace S7_SecureContainer.Interfaces.Test
+namespace FortifyAContainerUI.Interfaces.Test
 {
     public interface ITestRunner<T, Q>
     {

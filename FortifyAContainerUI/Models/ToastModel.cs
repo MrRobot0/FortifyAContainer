@@ -1,6 +1,6 @@
 ﻿using Blazored.Toast.Services;
 
-namespace S7_SecureContainer.Models
+namespace FortifyAContainerUI.Models
 {
     public class ToastModel
     {

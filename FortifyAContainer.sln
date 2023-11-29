@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.7.34024.191
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "S7_SecureContainer", "S7_SecureContainer\S7_SecureContainer.csproj", "{D63D3F52-B767-4F32-8D8D-9A0C16F3AA98}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FortifyAContainerUI", "FortifyAContainerUI\FortifyAContainerUI.csproj", "{D63D3F52-B767-4F32-8D8D-9A0C16F3AA98}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FortifyAContainerTests", "FortifyAContainerTests\FortifyAContainerTests.csproj", "{3F616220-3833-415F-8B35-0A9CA6BDB5B9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "S7_SecureContainerTests", "S7_SecureContainerTests\S7_SecureContainerTests.csproj", "{3F616220-3833-415F-8B35-0A9CA6BDB5B9}"
 EndProject

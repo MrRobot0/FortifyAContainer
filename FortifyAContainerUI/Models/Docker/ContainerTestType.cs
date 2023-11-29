@@ -1,4 +1,4 @@
-﻿namespace S7_SecureContainer.Models.Docker
+﻿namespace FortifyAContainerUI.Models.Docker
 {
 	public class ContainerTestType
 	{

@@ -1,4 +1,4 @@
-﻿namespace S7_SecureContainer.Interfaces.Container
+﻿namespace FortifyAContainerUI.Interfaces.Container
 {
     public interface ITests<T>
     {

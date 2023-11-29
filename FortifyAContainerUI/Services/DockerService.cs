@@ -1,13 +1,10 @@
 ﻿using Blazored.Toast.Services;
 using Docker.DotNet;
 using Docker.DotNet.Models;
-using S7_SecureContainer.Models;
-using System.Net.Sockets;
-using System.Reflection;
-using System.Runtime.ConstrainedExecution;
+using FortifyAContainerUI.Models;
 using System.Text.Json;
 
-namespace S7_SecureContainer.Services
+namespace FortifyAContainerUI.Services
 {
     public class DockerService
     {

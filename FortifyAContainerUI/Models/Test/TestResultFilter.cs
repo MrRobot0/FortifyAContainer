@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Reflection.Metadata.Ecma335;
-using static S7_SecureContainer.Models.Test.TestResult;
+using static FortifyAContainerUI.Models.Test.TestResult;
 
-namespace S7_SecureContainer.Models.Test
+namespace FortifyAContainerUI.Models.Test
 {
     public class TestResultFilter
     {

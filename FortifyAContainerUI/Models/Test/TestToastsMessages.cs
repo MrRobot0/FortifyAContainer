@@ -1,7 +1,7 @@
 ﻿using Blazored.Toast.Services;
 using System.Diagnostics;
 
-namespace S7_SecureContainer.Models.Test
+namespace FortifyAContainerUI.Models.Test
 {
     public class TestToastsMessages
     {

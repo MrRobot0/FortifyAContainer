@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
-using S7_SecureContainer.Services;
+using FortifyAContainerUI.Services;
 using Blazored.Toast;
 
 var builder = WebApplication.CreateBuilder(args);

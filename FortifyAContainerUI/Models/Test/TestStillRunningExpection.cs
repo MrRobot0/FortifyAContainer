@@ -1,4 +1,4 @@
-﻿namespace S7_SecureContainer.Models.Test
+﻿namespace FortifyAContainerUI.Models.Test
 {
     public class TestStillRunningExpection : Exception
     {
