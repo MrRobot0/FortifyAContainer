@@ -8,7 +8,7 @@ namespace FortifyAContainerUI.Services
 {
     public class TestService
     {
-        private readonly List<Task> Tasks= new();
+        private readonly List<Task> Tasks = new();
         private readonly Dictionary<ContainerListResponse, List<TestResult>> containerTestResults = new();
         private readonly DockerService DockerService;
         private readonly IToastService ToastService;
@@ -16,7 +16,8 @@ namespace FortifyAContainerUI.Services
 
         public bool TestRunning { get; private set; } = false;
 
-        public TestService (IToastService toastService, DockerService dockerService) {
+        public TestService(IToastService toastService, DockerService dockerService)
+        {
             ToastService = toastService;
             DockerService = dockerService;
             testToastsMessages = new TestToastsMessages(toastService);
@@ -53,7 +54,7 @@ namespace FortifyAContainerUI.Services
             await Task.WhenAll(Tasks);
             CheckIfTestsAreComplete(containerTestResults, containerFailedTests);
 
-            while (!containerFailedTests.TestComplete 
+            while (!containerFailedTests.TestComplete
                 && containerFailedTests.RetryCount <= TestToastsMessages.MaxRetries)
             {
                 Tasks.Clear();
@@ -76,7 +77,7 @@ namespace FortifyAContainerUI.Services
 
         private async Task<List<ContainerListResponse>> GetContainerList(ContainersListParameters listParameters)
         {
-            if (DockerService.Client == null ) return new();
+            if (DockerService.Client == null) return new();
             IList<ContainerListResponse> containers = await DockerService.Client.Containers.ListContainersAsync(listParameters);
             return containers.ToList();
         }
@@ -128,11 +129,11 @@ namespace FortifyAContainerUI.Services
                         lock (Tasks)
                             Tasks.Add(Task.Run(async () => containerTestResults[container].Add(await CheckCPULimit.Run(await containerInspectResponse))));
                         break;
-					case ContainerTestTypes.MemLimit:
-						lock (Tasks)
-							Tasks.Add(Task.Run(async () => containerTestResults[container].Add(await CheckMemLimit.Run(await containerInspectResponse))));
-						break;
-					default:
+                    case ContainerTestTypes.MemLimit:
+                        lock (Tasks)
+                            Tasks.Add(Task.Run(async () => containerTestResults[container].Add(await CheckMemLimit.Run(await containerInspectResponse))));
+                        break;
+                    default:
                         throw new Exception("Test does not exist!");
                 }
             }
@@ -144,7 +145,7 @@ namespace FortifyAContainerUI.Services
             containerTestResults.Add(container, new());
         }
 
-        private void CheckIfTestsAreComplete(Dictionary<ContainerListResponse, List<TestResult>> containerTestResults, 
+        private void CheckIfTestsAreComplete(Dictionary<ContainerListResponse, List<TestResult>> containerTestResults,
             ContainerFailedTests containerFailedTests)
         {
             bool testComplete = true;
@@ -156,7 +157,7 @@ namespace FortifyAContainerUI.Services
                 {
                     testComplete = false;
                     containerFailedTests.ContainerTestResults.Add(
-                        containerTestResult.Key, 
+                        containerTestResult.Key,
                         GetMissingTestResults(containerTestResult.Value));
                 }
             }
@@ -166,7 +167,8 @@ namespace FortifyAContainerUI.Services
         private List<ContainerTestType> GetMissingTestResults(List<TestResult> testResults)
         {
             List<ContainerTestType> testTypes = new();
-            foreach (var testResult in ContainerTestTypes.All){
+            foreach (var testResult in ContainerTestTypes.All)
+            {
                 if (!testResults.Any(a => a.Message == testResult.Name))
                 {
                     testTypes.Add(ContainerTestTypes.All.Where(a => a.Name == testResult.Name).Single());
