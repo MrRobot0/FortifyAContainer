@@ -6,16 +6,16 @@ EXPOSE 80
 
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /src
-COPY ["S7_SecureContainer/S7_SecureContainer.csproj", "S7_SecureContainer/"]
-RUN dotnet restore "S7_SecureContainer/S7_SecureContainer.csproj"
+COPY ["FortifyAContainerUI/FortifyAContainerUI.csproj", "FortifyAContainerUI/"]
+RUN dotnet restore "FortifyAContainerUI/FortifyAContainerUI.csproj"
 COPY . .
-WORKDIR "/src/S7_SecureContainer"
-RUN dotnet build "S7_SecureContainer.csproj" -c Release -o /app/build
+WORKDIR "/src/FortifyAContainerUI"
+RUN dotnet build "FortifyAContainerUI.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "S7_SecureContainer.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "FortifyAContainerUI.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "S7_SecureContainer.dll"]
+ENTRYPOINT ["dotnet", "FortifyAContainerUI.dll"]
